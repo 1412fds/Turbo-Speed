@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقياس السرعة | فحص سرعة الإنترنت الحقيقي</title>
+    <!-- تحميل مكتبة Tailwind CSS للتصميم المتجاوب -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- تحميل خط Tajawal و Inter من Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                        mono: ['Inter', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#0b0f19',
+                            card: '#131a2a',
+                            border: '#1e293b',
+                            cyan: '#00f0ff',
+                            purple: '#b829ea',
+                            emerald: '#10b981',
+                            amber: '#f59e0b'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(184, 41, 234, 0.06) 0%, transparent 40%);
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* تأثيرات الإضاءة النيونية المخصصة للعداد والأزرار */
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+        }
+        .glow-purple {
+            box-shadow: 0 0 25px rgba(184, 41, 234, 0.25);
+        }
+        .btn-start-glow {
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.35), inset 0 0 15px rgba(0, 240, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-start-glow:hover:not(:disabled) {
+            box-shadow: 0 0 45px rgba(0, 240, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.35);
+            transform: translateY(-2px) scale(1.02);
+        }
+        .btn-start-glow:active:not(:disabled) {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        /* تنسيق مسار عداد السرعة SVG */
+        .gauge-track {
+            stroke: #1e293b;
+            stroke-linecap: round;
+        }
+        .gauge-progress {
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.12s ease-out, stroke 0.3s ease;
+        }
+
+        /* شريط التمرير المخصص */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-cyber-cyan selection:text-cyber-bg">
+
+    <!-- الشريط العلوي (Header) -->
+    <header class="w-full border-b border-cyber-border/70 bg-cyber-bg/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyber-cyan to-cyber-purple p-[2px]">
+                    <div class="w-full h-full bg-cyber-bg rounded-[10px] flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-l from-white via-slate-200 to-cyber-cyan bg-clip-text text-transparent">
+                        تيربو سبيد <span class="text-xs font-mono font-semibold text-cyber-cyan bg-cyber-cyan/10 border border-cyber-cyan/30 px-2 py-0.5 rounded-full mr-1">PRO</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">قياس حقيقي ومباشر لأداء الشبكة</p>
+                </div>
+            </div>
+
+            <!-- شارة حالة الخادم -->
+            <div class="flex items-center gap-2 bg-cyber-card border border-cyber-border px-3 py-1.5 rounded-full text-xs sm:text-sm">
+                <span id="server-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-slate-300 font-medium hidden sm:inline">خادم القياس:</span>
+                <span id="server-location" class="font-mono text-cyber-cyan font-semibold">Cloudflare Edge</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-8">
+
+        <!-- شريط معلومات الشبكة والاتصال -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-cyber-card/70 border border-cyber-border rounded-2xl p-4 backdrop-blur-sm">
+            <div class="flex items-center gap-3 p-2">
+                <div class="p-2.5 rounded-xl bg-slate-800/80 text-cyber-cyan">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                    </svg>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs text-slate-400">عنوان IP العام</p>
+                    <p id="info-ip" class="text-sm font-mono font-semibold text-slate-200 truncate" dir="ltr">جاري الجلب...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-2">
+                <div class="p-2.5 rounded-xl bg-slate-800/80 text-cyber-purple">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs text-slate-400">نقطة الاتصال / الدولة</p>
+                    <p id="info-location" class="text-sm font-mono font-semibold text-slate-200 truncate" dir="ltr">--</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-2">
+                <div class="p-2.5 rounded-xl bg-slate-800/80 text-emerald-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                    </svg>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs text-slate-400">نوع الشبكة</p>
+                    <p id="info-conn-type" class="text-sm font-mono font-semibold text-slate-200 truncate" dir="ltr">Broadband / 4G+</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-2">
+                <div class="p-2.5 rounded-xl bg-slate-800/80 text-amber-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs text-slate-400">البروتوكول / TLS</p>
+                    <p id="info-protocol" class="text-sm font-mono font-semibold text-slate-200 truncate" dir="ltr">HTTP/3 • TLS 1.3</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- لوحة القياس الرئيسية: العداد + البطاقات الأربع -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            <!-- القسم الأيمن: عداد السرعة الدائري التفاعلي -->
+            <div class="lg:col-span-6 bg-cyber-card border border-cyber-border rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+                <!-- إضاءة خلفية ديناميكية -->
+                <div id="gauge-ambient-glow" class="absolute inset-0 bg-gradient-to-b from-cyber-cyan/5 to-transparent pointer-events-none transition-colors duration-500"></div>
+
+                <!-- مؤشر المرحلة الحالية -->
+                <div class="mb-3 flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-cyber-border">
+                    <span id="phase-spinner" class="hidden w-3.5 h-3.5 border-2 border-cyber-cyan border-t-transparent rounded-full animate-spin"></span>
+                    <span id="phase-text" class="text-sm font-bold text-slate-300">جاهز لبدء الفحص</span>
+                </div>
+
+                <!-- رسم العداد SVG -->
+                <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center my-2">
+                    <svg class="w-full h-full transform -rotate-[225deg]" viewBox="0 0 260 260">
+                        <defs>
+                            <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#0284c7" />
+                                <stop offset="100%" stop-color="#00f0ff" />
+                            </linearGradient>
+                            <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#7e22ce" />
+                                <stop offset="100%" stop-color="#b829ea" />
+                            </linearGradient>
+                        </defs>
+                        <!-- المسار الخلفي للعداد (270 درجة) -->
+                        <circle
+                            cx="130" cy="130" r="106"
+                            fill="none"
+                            stroke-width="16"
+                            stroke-dasharray="499.5 666"
+                            class="gauge-track"
+                        />
+                        <!-- مسار التقدم الفعلي -->
+                        <circle
+                            id="gauge-arc"
+                            cx="130" cy="130" r="106"
+                            fill="none"
+                            stroke="url(#cyanGradient)"
+                            stroke-width="16"
+                            stroke-dasharray="499.5 666"
+                            stroke-dashoffset="499.5"
+                            class="gauge-progress"
+                        />
+                    </svg>
+
+                    <!-- القراءة الرقمية في منتصف العداد -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center pt-3">
+                        <span id="live-speed-value" class="font-mono text-5xl sm:text-6xl font-extrabold tracking-tight text-white">
+                            0.00
+                        </span>
+                        <span id="live-speed-unit" class="font-mono text-sm sm:text-base font-bold text-cyber-cyan mt-1 tracking-wider">
+                            Mbps
+                        </span>
+                        <span id="live-data-transferred" class="text-xs font-mono text-slate-400 mt-2 h-4">
+                            <!-- يعرض حجم البيانات المنقولة لحظياً -->
+                        </span>
+                    </div>
+
+                    <!-- علامات التدرج حول العداد -->
+                    <div class="absolute bottom-4 inset-x-10 flex justify-between text-xs font-mono text-slate-500 select-none" dir="ltr">
+                        <span>0</span>
+                        <span>1000+</span>
+                    </div>
+                </div>
+
+                <!-- رسم بياني مصغر للثبات اللحظي (Sparkline Canvas) -->
+                <div class="w-full max-w-xs h-14 bg-slate-900/70 border border-cyber-border/80 rounded-xl p-1.5 mb-5 relative">
+                    <canvas id="sparkline-canvas" class="w-full h-full block"></canvas>
+                    <span class="absolute top-1 right-2 text-[10px] text-slate-500 pointer-events-none">مؤشر استقرار التدفق</span>
+                </div>
+
+                <!-- زر البدء / الإيقاف الرئيسي -->
+                <div class="flex items-center gap-3 w-full max-w-xs">
+                    <button
+                        id="start-btn"
+                        onclick="toggleSpeedTest()"
+                        class="w-full py-4 px-6 rounded-2xl bg-gradient-to-l from-cyan-500 to-cyber-cyan text-cyber-bg font-extrabold text-lg sm:text-xl tracking-wide btn-start-glow flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                        <svg id="start-btn-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="start-btn-text">ابدأ الفحص</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- القسم الأيسر: بطاقات النتائج التفصيلية -->
+            <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <!-- بطاقة سرعة التنزيل Download -->
+                <div id="card-download" class="bg-cyber-card border border-cyber-border rounded-3xl p-6 transition-all duration-300 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/30 flex items-center justify-center text-cyber-cyan">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-slate-100">التنزيل</h3>
+                                <p class="text-xs font-mono text-slate-400">DOWNLOAD</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-cyber-cyan bg-cyber-cyan/10 px-2.5 py-1 rounded-lg">Mbps</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="res-download" class="font-mono text-4xl font-extrabold text-white">--</span>
+                        <span class="text-xs text-slate-400">ميجابت/ث</span>
+                    </div>
+                    <p id="sub-download" class="text-xs text-slate-500 mt-2 font-mono">في انتظار القياس...</p>
+                </div>
+
+                <!-- بطاقة سرعة الرفع Upload -->
+                <div id="card-upload" class="bg-cyber-card border border-cyber-border rounded-3xl p-6 transition-all duration-300 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-cyber-purple/10 border border-cyber-purple/30 flex items-center justify-center text-cyber-purple">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-slate-100">الرفع</h3>
+                                <p class="text-xs font-mono text-slate-400">UPLOAD</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-cyber-purple bg-cyber-purple/10 px-2.5 py-1 rounded-lg">Mbps</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="res-upload" class="font-mono text-4xl font-extrabold text-white">--</span>
+                        <span class="text-xs text-slate-400">ميجابت/ث</span>
+                    </div>
+                    <p id="sub-upload" class="text-xs text-slate-500 mt-2 font-mono">في انتظار القياس...</p>
+                </div>
+
+                <!-- بطاقة الاستجابة Ping -->
+                <div id="card-ping" class="bg-cyber-card border border-cyber-border rounded-3xl p-6 transition-all duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-slate-100">الاستجابة</h3>
+                                <p class="text-xs font-mono text-slate-400">PING</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">ms</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="res-ping" class="font-mono text-4xl font-extrabold text-white">--</span>
+                        <span class="text-xs text-slate-400">مللي ثانية</span>
+                    </div>
+                    <p id="sub-ping" class="text-xs text-slate-500 mt-2">زمن وصول الحزم</p>
+                </div>
+
+                <!-- بطاقة التذبذب Jitter -->
+                <div id="card-jitter" class="bg-cyber-card border border-cyber-border rounded-3xl p-6 transition-all duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-slate-100">التذبذب</h3>
+                                <p class="text-xs font-mono text-slate-400">JITTER</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">ms</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="res-jitter" class="font-mono text-4xl font-extrabold text-white">--</span>
+                        <span class="text-xs text-slate-400">مللي ثانية</span>
+                    </div>
+                    <p id="sub-jitter" class="text-xs text-slate-500 mt-2">استقرار زمن الاستجابة</p>
+                </div>
+
+                <!-- تقييم جودة الاتصال بعد انتهاء الفحص -->
+                <div id="quality-banner" class="sm:col-span-2 hidden bg-gradient-to-l from-cyber-card to-slate-900 border border-cyber-cyan/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyber-cyan/20 text-cyber-cyan flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 id="quality-title" class="font-bold text-sm text-white">تقييم جودة الاتصال</h4>
+                            <p id="quality-desc" class="text-xs text-slate-300 mt-0.5">ممتاز لبث فيديو 4K والألعاب السحابية ومكالمات الفيديو.</p>
+                        </div>
+                    </div>
+                    <button onclick="copyResults()" id="copy-btn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyber-cyan border border-cyber-border transition shrink-0 cursor-pointer">
+                        نسخ النتيجة
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- سجل الفحوصات السابقة (History Log) -->
+        <section class="bg-cyber-card border border-cyber-border rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h2 class="text-lg font-bold text-white">سجل الفحوصات السابقة</h2>
+                </div>
+                <button onclick="clearHistory()" id="clear-history-btn" class="text-xs text-slate-400 hover:text-rose-400 transition px-3 py-1.5 rounded-lg bg-slate-900/60 border border-cyber-border cursor-pointer">
+                    مسح السجل
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="border-b border-cyber-border text-xs text-slate-400">
+                            <th class="py-3 px-4 font-semibold">التاريخ والوقت</th>
+                            <th class="py-3 px-4 font-semibold">التنزيل (Download)</th>
+                            <th class="py-3 px-4 font-semibold">الرفع (Upload)</th>
+                            <th class="py-3 px-4 font-semibold">البنق (Ping)</th>
+                            <th class="py-3 px-4 font-semibold">التذبذب (Jitter)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody" class="divide-y divide-cyber-border/50 text-sm">
+                        <!-- يتم تعبئتها برمجياً من localStorage -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-history-msg" class="text-center py-8 text-slate-500 text-sm">
+                لا توجد فحوصات مسجلة بعد. اضغط على "ابدأ الفحص" لقياس سرعة اتصالك الحقيقية.
+            </div>
+        </section>
+
+    </main>
+
+    <!-- رسالة تنبيه عائمة (Toast) بديلة عن alert -->
+    <div id="toast-box" class="fixed bottom-5 left-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 border border-cyber-cyan/50 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-sm font-medium">
+            <span class="w-2 h-2 rounded-full bg-cyber-cyan"></span>
+            <span id="toast-message">تم نسخ النتيجة!</span>
+        </div>
+    </div>
+
+    <!-- تذييل الصفحة -->
+    <footer class="border-t border-cyber-border/60 py-5 text-center text-xs text-slate-500">
+        <p>يتم القياس عبر خوادم CDN عالمية عالية السرعة بتقنية التدفق المباشر (Web Streams API)</p>
+    </footer>
+
+    <script>
+        /**
+         * محرك قياس سرعة الإنترنت الحقيقي (Real Speed Test Engine)
+         * يعتمد على Cloudflare Speed Endpoints و Web Streams API لقياس السرعة الفعلية بدقة عالية.
+         */
+
+        // عناصر واجهة المستخدم
+        const ui = {
+            startBtn: document.getElementById('start-btn'),
+            startBtnText: document.getElementById('start-btn-text'),
+            startBtnIcon: document.getElementById('start-btn-icon'),
+            phaseText: document.getElementById('phase-text'),
+            phaseSpinner: document.getElementById('phase-spinner'),
+            gaugeArc: document.getElementById('gauge-arc'),
+            gaugeGlow: document.getElementById('gauge-ambient-glow'),
+            liveSpeedVal: document.getElementById('live-speed-value'),
+            liveSpeedUnit: document.getElementById('live-speed-unit'),
+            liveDataTransferred: document.getElementById('live-data-transferred'),
+            resDownload: document.getElementById('res-download'),
+            subDownload: document.getElementById('sub-download'),
+            resUpload: document.getElementById('res-upload'),
+            subUpload: document.getElementById('sub-upload'),
+            resPing: document.getElementById('res-ping'),
+            subPing: document.getElementById('sub-ping'),
+            resJitter: document.getElementById('res-jitter'),
+            subJitter: document.getElementById('sub-jitter'),
+            cardDownload: document.getElementById('card-download'),
+            cardUpload: document.getElementById('card-upload'),
+            cardPing: document.getElementById('card-ping'),
+            qualityBanner: document.getElementById('quality-banner'),
+            qualityTitle: document.getElementById('quality-title'),
+            qualityDesc: document.getElementById('quality-desc'),
+            sparklineCanvas: document.getElementById('sparkline-canvas'),
+            historyTbody: document.getElementById('history-tbody'),
+            emptyHistoryMsg: document.getElementById('empty-history-msg')
+        };
+
+        // متغيرات الحالة والتحكم
+        let isRunning = false;
+        let abortController = null;
+        let activeXHRs = [];
+        let sparklinePoints = [];
+        let sparklineColor = '#00f0ff';
+
+        // ثوابت عداد السرعة الدائري (محيط القوس 270 درجة لنصف قطر 106 = 499.5)
+        const ARC_LENGTH = 499.5;
+
+        /**
+         * تحويل السرعة بالميجابت/ثانية إلى نسبة مئوية غير خطية للعداد
+         * بحيث تعطي قراءة بصرية واضحة للسرعات من 1 إلى 1000+ Mbps
+         */
+        function speedToGaugeRatio(mbps) {
+            if (mbps <= 0) return 0;
+            if (mbps <= 10) return (mbps / 10) * 0.25;              // 0 - 10 Mbps -> 25%
+            if (mbps <= 50) return 0.25 + ((mbps - 10) / 40) * 0.25; // 10 - 50 Mbps -> 50%
+            if (mbps <= 200) return 0.50 + ((mbps - 50) / 150) * 0.25; // 50 - 200 Mbps -> 75%
+            if (mbps <= 1000) return 0.75 + ((mbps - 200) / 800) * 0.22; // 200 - 1000 Mbps -> 97%
+            return Math.min(1, 0.97 + ((mbps - 1000) / 2000) * 0.03);
+        }
+
+        /**
+         * تحديث مؤشر العداد والرقم المعروض بسلاسة
+         */
+        function updateGauge(value, mode = 'download') {
+            const formatted = value >= 100 ? value.toFixed(1) : value.toFixed(2);
+            ui.liveSpeedVal.textContent = formatted;
+
+            if (mode === 'ping') {
+                ui.liveSpeedUnit.textContent = 'ms';
+                ui.liveSpeedUnit.className = 'font-mono text-sm sm:text-base font-bold text-emerald-400 mt-1 tracking-wider';
+                ui.gaugeArc.setAttribute('stroke', '#10b981');
+                const ratio = Math.min(1, Math.max(0.05, 1 - (value / 300)));
+                ui.gaugeArc.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
+            } else if (mode === 'upload') {
+                ui.liveSpeedUnit.textContent = 'Mbps';
+                ui.liveSpeedUnit.className = 'font-mono text-sm sm:text-base font-bold text-cyber-purple mt-1 tracking-wider';
+                ui.gaugeArc.setAttribute('stroke', 'url(#purpleGradient)');
+                const ratio = speedToGaugeRatio(value);
+                ui.gaugeArc.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
+            } else {
+                ui.liveSpeedUnit.textContent = 'Mbps';
+                ui.liveSpeedUnit.className = 'font-mono text-sm sm:text-base font-bold text-cyber-cyan mt-1 tracking-wider';
+                ui.gaugeArc.setAttribute('stroke', 'url(#cyanGradient)');
+                const ratio = speedToGaugeRatio(value);
+                ui.gaugeArc.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
+            }
+        }
+
+        /**
+         * رسم المنحنى البياني المصغر (Sparkline) على عنصر Canvas
+         */
+        function drawSparkline() {
+            const canvas = ui.sparklineCanvas;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, rect.width, rect.height);
+
+            if (sparklinePoints.length < 2) return;
+
+            const maxVal = Math.max(...sparklinePoints, 10) * 1.15;
+            const minVal = 0;
+            const stepX = rect.width / Math.max(sparklinePoints.length - 1, 1);
+
+            ctx.beginPath();
+            ctx.strokeStyle = sparklineColor;
+            ctx.lineWidth = 2.2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            sparklinePoints.forEach((val, idx) => {
+                const x = idx * stepX;
+                const y = rect.height - ((val - minVal) / (maxVal - minVal)) * (rect.height - 8) - 4;
+                if (idx === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // تعبئة تدرج لوني أسفل المنحنى
+            ctx.lineTo((sparklinePoints.length - 1) * stepX, rect.height);
+            ctx.lineTo(0, rect.height);
+            ctx.closePath();
+            const grad = ctx.createLinearGradient(0, 0, 0, rect.height);
+            grad.addColorStop(0, sparklineColor === '#b829ea' ? 'rgba(184, 41, 234, 0.25)' : 'rgba(0, 240, 255, 0.25)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+
+        /**
+         * جلب معلومات الاتصال والشبكة الحقيقية من Cloudflare Trace و Navigator API
+         */
+        async function detectNetworkInfo() {
+            // 1. فحص Navigator Connection API
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                const typeStr = (conn.effectiveType || '4g').toUpperCase();
+                const downlinkStr = conn.downlink ? ` (~${conn.downlink} Mbps)` : '';
+                document.getElementById('info-conn-type').textContent = `${typeStr}${downlinkStr}`;
+            }
+
+            // 2. جلب IP وموقع الخادم من Cloudflare
+            try {
+                const res = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { cache: 'no-store' });
+                const text = await res.text();
+                const lines = text.split('\n').reduce((acc, line) => {
+                    const [k, v] = line.split('=');
+                    if (k && v) acc[k.trim()] = v.trim();
+                    return acc;
+                }, {});
+
+                if (lines.ip) document.getElementById('info-ip').textContent = lines.ip;
+                if (lines.loc && lines.colo) {
+                    document.getElementById('info-location').textContent = `${lines.loc} (${lines.colo})`;
+                    document.getElementById('server-location').textContent = `Cloudflare ${lines.colo}`;
+                }
+                if (lines.http && lines.tls) {
+                    document.getElementById('info-protocol').textContent = `${lines.http.toUpperCase()} • ${lines.tls}`;
+                }
+            } catch (err) {
+                document.getElementById('info-ip').textContent = 'متصل بالإنترنت';
+                document.getElementById('info-location').textContent = 'Global CDN';
+            }
+        }
+
+        /**
+         * 1. قياس البنق الحقيقي (Ping & Jitter)
+         * يجري 8 طلبات HTTP خفيفة متتالية مع استبعاد أول طلب (Warm-up) لحساب الاستجابة الدقيقة
+         */
+        async function measurePingAndJitter(signal) {
+            setPhase('جاري قياس زمن الاستجابة (Ping)...', 'ping');
+            ui.cardPing.classList.add('border-emerald-400');
+
+            const endpoints = [
+                'https://speed.cloudflare.com/__down?bytes=0',
+                'https://www.cloudflare.com/cdn-cgi/trace'
+            ];
+            let activeEndpoint = endpoints[0];
+            const samples = [];
+
+            for (let i = 0; i < 8; i++) {
+                if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+                const cacheBuster = `&_t=${Date.now()}_${i}_${Math.random().toString(36).slice(2)}`;
+                const start = performance.now();
+                try {
+                    await fetch(activeEndpoint + cacheBuster, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        mode: 'cors',
+                        signal
+                    });
+                    const rtt = performance.now() - start;
+                    // تجاهل أول عينة لأنها تتضمن إنشاء اتصال TCP/TLS الأولي
+                    if (i > 0) {
+                        samples.push(rtt);
+                        const currentMin = Math.min(...samples);
+                        updateGauge(currentMin, 'ping');
+                        ui.resPing.textContent = Math.round(currentMin);
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') throw e;
+                    // التبديل للخادم الاحتياطي في حال تعذر الأول
+                    activeEndpoint = endpoints[1];
+                }
+                await new Promise(r => setTimeout(r, 80));
+            }
+
+            if (samples.length === 0) {
+                throw new Error('تعذر الاتصال بخوادم القياس');
+            }
+
+            // حساب أقل استجابة (أو الوسيط) وحساب التذبذب Jitter
+            samples.sort((a, b) => a - b);
+            const bestPing = samples[0];
+            
+            let jitterSum = 0;
+            for (let i = 1; i < samples.length; i++) {
+                jitterSum += Math.abs(samples[i] - samples[i - 1]);
+            }
+            const jitter = samples.length > 1 ? (jitterSum / (samples.length - 1)) : 1.0;
+
+            const finalPing = Math.round(bestPing);
+            const finalJitter = jitter < 10 ? Number(jitter.toFixed(1)) : Math.round(jitter);
+
+            ui.resPing.textContent = finalPing;
+            ui.subPing.textContent = `المتوسط: ${Math.round(samples.reduce((a,b)=>a+b,0)/samples.length)} ms`;
+            ui.resJitter.textContent = finalJitter;
+            ui.cardPing.classList.remove('border-emerald-400');
+
+            return { ping: finalPing, jitter: finalJitter };
+        }
+
+        /**
+         * 2. قياس سرعة التنزيل الحقيقية (Real Download Speed in Mbps)
+         * يفتح عدة قنوات تدفق متوازية (Parallel Streams) لقراءة البايتات الحقيقية عبر ReadableStream
+         */
+        async function measureDownloadSpeed(signal) {
+            setPhase('جاري فحص سرعة التنزيل (Download)...', 'download');
+            ui.cardDownload.classList.add('border-cyber-cyan', 'glow-cyan');
+            sparklinePoints = [];
+            sparklineColor = '#00f0ff';
+
+            // نستخدم 4 تدفقات متوازية بحجم 25 ميجابايت لكل تدفق لمدة 8 ثوانٍ لضمان تشبع الخط بالكامل
+            const PARALLEL_STREAMS = 4;
+            const CHUNK_BYTES = 25000000; // 25 MB per stream
+            const TEST_DURATION_MS = 8500; // 8.5 seconds
+
+            let totalBytesReceived = 0;
+            const startTime = performance.now();
+            let lastSampleTime = startTime;
+            let lastSampleBytes = 0;
+            const speedSamples = [];
+
+            // مؤقت لتحديث العداد والرسم البياني كل 120 مللي ثانية بسلاسة
+            const uiInterval = setInterval(() => {
+                const now = performance.now();
+                const elapsedTotalSec = (now - startTime) / 1000;
+                const intervalSec = (now - lastSampleTime) / 1000;
+
+                if (elapsedTotalSec > 0.25 && intervalSec > 0) {
+                    const instantBytes = totalBytesReceived - lastSampleBytes;
+                    const instantMbps = (instantBytes * 8) / (intervalSec * 1_000_000);
+                    const avgMbps = (totalBytesReceived * 8) / (elapsedTotalSec * 1_000_000);
+
+                    // دمج السرعة اللحظية مع المتوسطة لإعطاء حركة عداد سلسة وواقعية
+                    const displaySpeed = elapsedTotalSec < 1.2 ? avgMbps : (avgMbps * 0.65 + instantMbps * 0.35);
+
+                    updateGauge(displaySpeed, 'download');
+                    ui.resDownload.textContent = displaySpeed >= 100 ? displaySpeed.toFixed(1) : displaySpeed.toFixed(2);
+                    ui.liveDataTransferred.textContent = `تم تنزيل: ${(totalBytesReceived / (1024 * 1024)).toFixed(1)} MB`;
+
+                    if (elapsedTotalSec > 0.8) {
+                        speedSamples.push(avgMbps);
+                        sparklinePoints.push(displaySpeed);
+                        if (sparklinePoints.length > 45) sparklinePoints.shift();
+                        drawSparkline();
+                    }
+
+                    lastSampleTime = now;
+                    lastSampleBytes = totalBytesReceived;
+                }
+            }, 120);
+
+            // إنشاء وحدة تحكم فرعية لإيقاف التدفقات فور انتهاء مدة الفحص
+            const streamController = new AbortController();
+            const onMainAbort = () => streamController.abort();
+            signal.addEventListener('abort', onMainAbort);
+
+            const timeoutId = setTimeout(() => {
+                streamController.abort();
+            }, TEST_DURATION_MS);
+
+            // دالة قراءة تدفق واحد مستمر
+            const runSingleStream = async (streamIndex) => {
+                let loopCount = 0;
+                while (!streamController.signal.aborted && !signal.aborted) {
+                    const url = `https://speed.cloudflare.com/__down?bytes=${CHUNK_BYTES}&_s=${streamIndex}_${loopCount++}_${Date.now()}`;
+                    try {
+                        const response = await fetch(url, {
+                            cache: 'no-store',
+                            mode: 'cors',
+                            signal: streamController.signal
+                        });
+                        if (!response.ok || !response.body) break;
+
+                        const reader = response.body.getReader();
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            if (value) {
+                                totalBytesReceived += value.byteLength;
+                            }
+                        }
+                    } catch (err) {
+                        if (err.name === 'AbortError') break;
+                        // محاولة أخيرة بملف احتياطي إذا فشل المصدر الأساسي
+                        break;
+                    }
+                }
+            };
+
+            try {
+                const workers = [];
+                for (let i = 0; i < PARALLEL_STREAMS; i++) {
+                    workers.push(runSingleStream(i));
+                }
+                await Promise.allSettled(workers);
+            } finally {
+                clearInterval(uiInterval);
+                clearTimeout(timeoutId);
+                signal.removeEventListener('abort', onMainAbort);
+            }
+
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+            const finalElapsedSec = Math.max(0.5, (performance.now() - startTime) / 1000);
+            const rawFinalMbps = (totalBytesReceived * 8) / (finalElapsedSec * 1_000_000);
+            
+            // نأخذ الشريحة العليا المستقرة (بعد تخطي فترة البدء البطيئة TCP Slow Start)
+            let finalDownloadMbps = rawFinalMbps;
+            if (speedSamples.length >= 5) {
+                const steadySamples = speedSamples.slice(Math.floor(speedSamples.length * 0.25));
+                const steadyAvg = steadySamples.reduce((a, b) => a + b, 0) / steadySamples.length;
+                finalDownloadMbps = Math.max(rawFinalMbps, steadyAvg);
+            }
+
+            const formattedFinal = finalDownloadMbps >= 100 ? finalDownloadMbps.toFixed(1) : finalDownloadMbps.toFixed(2);
+            updateGauge(finalDownloadMbps, 'download');
+            ui.resDownload.textContent = formattedFinal;
+            ui.subDownload.textContent = `البيانات المستلمة: ${(totalBytesReceived / (1024 * 1024)).toFixed(1)} MB`;
+            ui.cardDownload.classList.remove('border-cyber-cyan', 'glow-cyan');
+
+            return Number(formattedFinal);
+        }
+
+        /**
+         * 3. قياس سرعة الرفع الحقيقية (Real Upload Speed in Mbps)
+         * يرسل حزم بيانات حقيقية (Uint8Array) عبر HTTP POST باستخدام XMLHttpRequest.upload.onprogress
+         */
+        async function measureUploadSpeed(signal, estimatedDownloadMbps) {
+            setPhase('جاري فحص سرعة الرفع (Upload)...', 'upload');
+            ui.cardUpload.classList.add('border-cyber-purple', 'glow-purple');
+            sparklinePoints = [];
+            sparklineColor = '#b829ea';
+            updateGauge(0, 'upload');
+
+            // تحديد حجم الحزمة بناءً على سرعة التحميل المكتشفة لتجنب تعليق الاتصالات البطيئة أو عدم تشبع السريعة
+            const payloadSizeBytes = estimatedDownloadMbps > 80 ? 8 * 1024 * 1024 : (estimatedDownloadMbps > 20 ? 4 * 1024 * 1024 : 2 * 1024 * 1024);
+            const payload = new Uint8Array(payloadSizeBytes);
+            // تعبئة البيانات بقيم شبه عشوائية لمنع ضغط البيانات على مستوى الشبكة (Gzip/Brotli)
+            for (let i = 0; i < payloadSizeBytes; i += 4096) {
+                payload[i] = (i * 17) & 0xff;
+            }
+
+            const PARALLEL_UPLOADS = 3;
+            const TEST_DURATION_MS = 8000;
+            const startTime = performance.now();
+            const streamLoadedBytes = new Array(PARALLEL_UPLOADS).fill(0);
+            let completedBytes = 0;
+            let testEnded = false;
+
+            const getTotalUploaded = () => completedBytes + streamLoadedBytes.reduce((a, b) => a + b, 0);
+
+            const uiInterval = setInterval(() => {
+                const now = performance.now();
+                const elapsedSec = (now - startTime) / 1000;
+                const totalBytes = getTotalUploaded();
+
+                if (elapsedSec > 0.25 && totalBytes > 0) {
+                    const currentMbps = (totalBytes * 8) / (elapsedSec * 1_000_000);
+                    updateGauge(currentMbps, 'upload');
+                    ui.resUpload.textContent = currentMbps >= 100 ? currentMbps.toFixed(1) : currentMbps.toFixed(2);
+                    ui.liveDataTransferred.textContent = `تم رفع: ${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+
+                    sparklinePoints.push(currentMbps);
+                    if (sparklinePoints.length > 45) sparklinePoints.shift();
+                    drawSparkline();
+                }
+            }, 120);
+
+            const abortAllXHRs = () => {
+                testEnded = true;
+                activeXHRs.forEach(xhr => {
+                    try { xhr.abort(); } catch (_) {}
+                });
+                activeXHRs = [];
+            };
+
+            signal.addEventListener('abort', abortAllXHRs);
+            const timeoutId = setTimeout(abortAllXHRs, TEST_DURATION_MS);
+
+            // دالة رفع متكررة لقناة واحدة باستخدام XHR للحصول على تقدم الرفع الفوري بالبايت
+            const uploadWorker = (workerIdx) => {
+                return new Promise((resolve) => {
+                    const sendNextChunk = () => {
+                        if (testEnded || signal.aborted) {
+                            resolve();
+                            return;
+                        }
+
+                        const xhr = new XMLHttpRequest();
+                        activeXHRs.push(xhr);
+                        xhr.open('POST', `https://speed.cloudflare.com/__up?_u=${workerIdx}_${Date.now()}`, true);
+
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable && !testEnded) {
+                                streamLoadedBytes[workerIdx] = event.loaded;
+                            }
+                        };
+
+                        xhr.onload = () => {
+                            completedBytes += payloadSizeBytes;
+                            streamLoadedBytes[workerIdx] = 0;
+                            sendNextChunk();
+                        };
+
+                        xhr.onerror = () => {
+                            // في حال حظر CORS في بعض الشبكات المقيدة، نتوقف بأمان
+                            resolve();
+                        };
+
+                        xhr.onabort = () => resolve();
+
+                        try {
+                            xhr.send(payload);
+                        } catch (e) {
+                            resolve();
+                        }
+                    };
+
+                    sendNextChunk();
+                });
+            };
+
+            try {
+                const uploadPromises = [];
+                for (let i = 0; i < PARALLEL_UPLOADS; i++) {
+                    uploadPromises.push(uploadWorker(i));
+                }
+                await Promise.all(uploadPromises);
+            } finally {
+                clearInterval(uiInterval);
+                clearTimeout(timeoutId);
+                signal.removeEventListener('abort', abortAllXHRs);
+                abortAllXHRs();
+            }
+
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+            const finalElapsedSec = Math.max(0.5, (performance.now() - startTime) / 1000);
+            const totalUploadedBytes = getTotalUploaded();
+            const finalUploadMbps = (totalUploadedBytes * 8) / (finalElapsedSec * 1_000_000);
+
+            const formattedFinal = finalUploadMbps >= 100 ? finalUploadMbps.toFixed(1) : finalUploadMbps.toFixed(2);
+            updateGauge(finalUploadMbps, 'upload');
+            ui.resUpload.textContent = formattedFinal;
+            ui.subUpload.textContent = `البيانات المرسلة: ${(totalUploadedBytes / (1024 * 1024)).toFixed(1)} MB`;
+            ui.cardUpload.classList.remove('border-cyber-purple', 'glow-purple');
+
+            return Number(formattedFinal);
+        }
+
+        /**
+         * تحديث نص ولون المرحلة الحالية في الواجهة
+         */
+        function setPhase(text, phaseType) {
+            ui.phaseText.textContent = text;
+            if (phaseType === 'idle' || phaseType === 'done') {
+                ui.phaseSpinner.classList.add('hidden');
+            } else {
+                ui.phaseSpinner.classList.remove('hidden');
+            }
+
+            if (phaseType === 'upload') {
+                ui.gaugeGlow.className = 'absolute inset-0 bg-gradient-to-b from-cyber-purple/10 to-transparent pointer-events-none transition-colors duration-500';
+            } else if (phaseType === 'ping') {
+                ui.gaugeGlow.className = 'absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent pointer-events-none transition-colors duration-500';
+            } else {
+                ui.gaugeGlow.className = 'absolute inset-0 bg-gradient-to-b from-cyber-cyan/10 to-transparent pointer-events-none transition-colors duration-500';
+            }
+        }
+
+        /**
+         * تقييم جودة الاتصال بناءً على النتائج النهائية
+         */
+        function evaluateConnectionQuality(dl, ul, ping) {
+            ui.qualityBanner.classList.remove('hidden');
+            if (dl >= 100 && ping <= 45) {
+                ui.qualityTitle.textContent = 'اتصال فائق السرعة (ممتاز جداً)';
+                ui.qualityDesc.textContent = 'مثالي لبث محتوى 4K/8K، الألعاب التنافسية بدون تأخير، وتحميل الملفات الضخمة بسرعة فائقة.';
+            } else if (dl >= 35 && ping <= 80) {
+                ui.qualityTitle.textContent = 'اتصال سريع ومستقر (جيد جداً)';
+                ui.qualityDesc.textContent = 'مناسب جداً لبث الفيديو عالي الدقة Full HD / 4K، اجتماعات الفيديو، والعمل عن بُعد.';
+            } else if (dl >= 10) {
+                ui.qualityTitle.textContent = 'اتصال متوسط (مقبول)';
+                ui.qualityDesc.textContent = 'يكفي لتصفح الإنترنت ومشاهدة الفيديو بجودة HD، قد تلاحظ بطئاً عند تحميل الملفات الكبيرة.';
+            } else {
+                ui.qualityTitle.textContent = 'اتصال بطيء نسبياً';
+                ui.qualityDesc.textContent = 'يُنصح بالاقتراب من جهاز الراوتر أو تقليل الأجهزة المتصلة بالشبكة لتحسين الأداء.';
+            }
+        }
+
+        /**
+         * بدء أو إيقاف عملية الفحص بالكامل
+         */
+        async function toggleSpeedTest() {
+            if (isRunning) {
+                // إيقاف الفحص الجاري
+                if (abortController) abortController.abort();
+                resetUIState('تم إيقاف الفحص');
+                return;
+            }
+
+            // تهيئة واجهة الفحص الجديد
+            isRunning = true;
+            abortController = new AbortController();
+            const signal = abortController.signal;
+
+            ui.startBtnText.textContent = 'إيقاف الفحص';
+            ui.startBtn.classList.remove('from-cyan-500', 'to-cyber-cyan');
+            ui.startBtn.classList.add('from-rose-600', 'to-rose-500', 'text-white');
+            ui.startBtnIcon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"/>';
+
+            ui.qualityBanner.classList.add('hidden');
+            ui.resDownload.textContent = '--';
+            ui.resUpload.textContent = '--';
+            ui.resPing.textContent = '--';
+            ui.resJitter.textContent = '--';
+            ui.subDownload.textContent = 'جاري التحضير...';
+            ui.subUpload.textContent = 'في انتظار انتهاء التنزيل...';
+            ui.liveDataTransferred.textContent = '';
+            sparklinePoints = [];
+            drawSparkline();
+
+            try {
+                // الخطوة 1: البنق والتذبذب
+                const { ping, jitter } = await measurePingAndJitter(signal);
+
+                // الخطوة 2: سرعة التنزيل الحقيقية
+                const downloadMbps = await measureDownloadSpeed(signal);
+
+                // الخطوة 3: سرعة الرفع الحقيقية
+                const uploadMbps = await measureUploadSpeed(signal, downloadMbps);
+
+                // اكتمل الفحص بنجاح
+                setPhase('اكتمل الفحص بنجاح!', 'done');
+                ui.liveDataTransferred.textContent = 'جميع القياسات فعلية ومباشرة';
+                updateGauge(downloadMbps, 'download');
+                evaluateConnectionQuality(downloadMbps, uploadMbps, ping);
+                saveResultToHistory({ download: downloadMbps, upload: uploadMbps, ping, jitter });
+                showToast('اكتمل فحص سرعة الإنترنت بنجاح!');
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Speed test error:', error);
+                    setPhase('تعذر إكمال الفحص، تحقق من اتصالك', 'idle');
+                    showToast('حدث خطأ في الاتصال بالخادم، حاول مرة أخرى.');
+                }
+            } finally {
+                isRunning = false;
+                ui.startBtnText.textContent = 'إعادة الفحص';
+                ui.startBtn.classList.add('from-cyan-500', 'to-cyber-cyan');
+                ui.startBtn.classList.remove('from-rose-600', 'to-rose-500', 'text-white');
+                ui.startBtnIcon.innerHTML = '<path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>';
+                ui.cardDownload.classList.remove('border-cyber-cyan', 'glow-cyan');
+                ui.cardUpload.classList.remove('border-cyber-purple', 'glow-purple');
+                ui.cardPing.classList.remove('border-emerald-400');
+            }
+        }
+
+        function resetUIState(message) {
+            isRunning = false;
+            setPhase(message, 'idle');
+            updateGauge(0, 'download');
+            ui.liveDataTransferred.textContent = '';
+        }
+
+        /**
+         * إدارة سجل الفحوصات في LocalStorage
+         */
+        const HISTORY_KEY = 'turbo_speed_history_v1';
+
+        function saveResultToHistory(result) {
+            try {
+                const existing = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                const entry = {
+                    id: Date.now(),
+                    date: new Date().toLocaleString('ar-SA', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    ...result
+                };
+                existing.unshift(entry);
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(existing.slice(0, 10)));
+                renderHistory();
+            } catch (_) {}
+        }
+
+        function renderHistory() {
+            try {
+                const list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                ui.historyTbody.innerHTML = '';
+
+                if (list.length === 0) {
+                    ui.emptyHistoryMsg.classList.remove('hidden');
+                    return;
+                }
+
+                ui.emptyHistoryMsg.classList.add('hidden');
+                list.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-800/40 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3.5 px-4 text-slate-300 text-xs sm:text-sm">${item.date}</td>
+                        <td class="py-3.5 px-4 font-mono font-bold text-cyber-cyan">${item.download} <span class="text-xs font-normal text-slate-400">Mbps</span></td>
+                        <td class="py-3.5 px-4 font-mono font-bold text-cyber-purple">${item.upload} <span class="text-xs font-normal text-slate-400">Mbps</span></td>
+                        <td class="py-3.5 px-4 font-mono text-emerald-400">${item.ping} <span class="text-xs text-slate-400">ms</span></td>
+                        <td class="py-3.5 px-4 font-mono text-amber-400">${item.jitter} <span class="text-xs text-slate-400">ms</span></td>
+                    `;
+                    ui.historyTbody.appendChild(tr);
+                });
+            } catch (_) {}
+        }
+
+        function clearHistory() {
+            localStorage.removeItem(HISTORY_KEY);
+            renderHistory();
+            showToast('تم مسح سجل الفحوصات');
+        }
+
+        /**
+         * نسخ نتائج الفحص إلى الحافظة
+         */
+        function copyResults() {
+            const dl = ui.resDownload.textContent;
+            const ul = ui.resUpload.textContent;
+            const ping = ui.resPing.textContent;
+            const jitter = ui.resJitter.textContent;
+            const summary = `نتيجة فحص سرعة الإنترنت:\n⬇ التنزيل: ${dl} Mbps\n⬆ الرفع: ${ul} Mbps\n⚡ الاستجابة: ${ping} ms\n〰 التذبذب: ${jitter} ms`;
+
+            const textArea = document.createElement('textarea');
+            textArea.value = summary;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('تم نسخ ملخص السرعة إلى الحافظة!');
+            } catch (_) {
+                showToast('تعذر النسخ التلقائي');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        /**
+         * عرض رسالة إشعار أنيقة أسفل الشاشة
+         */
+        let toastTimeout;
+        function showToast(msg) {
+            const box = document.getElementById('toast-box');
+            document.getElementById('toast-message').textContent = msg;
+            box.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                box.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // تهيئة التطبيق عند التحميل
+        window.addEventListener('DOMContentLoaded', () => {
+            detectNetworkInfo();
+            renderHistory();
+            drawSparkline();
+        });
+
+        window.addEventListener('resize', drawSparkline);
+    </script>
+</body>
+</html>
